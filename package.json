@@ -1,0 +1,22 @@
+{
+  "name": "loantool",
+  "version": "1.0.0",
+  "description": "**[Try it live → https://chrisgute.github.io/loan_tool/](https://chrisgute.github.io/loan_tool/)**",
+  "main": "loan-math.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node tests/loan-math.test.js",
+    "test:ui": "npx playwright test tests/ui.spec.js",
+    "test:all": "node tests/loan-math.test.js && npx playwright test tests/ui.spec.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

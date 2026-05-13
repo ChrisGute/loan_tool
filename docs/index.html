@@ -148,18 +148,10 @@
     font-size: 10px; padding: 1px 6px; border-radius: 20px; margin-top: 4px; }
   .bar-tooltip-badge.green { background: #006c49; }
 
-  /* Target date result callout */
-  .target-callout {
-    background: linear-gradient(135deg, #001a42 0%, #003080 100%);
-    border-radius: 12px;
-    padding: 20px 24px;
-    color: #fff;
-  }
-  .target-callout .tc-label { font-size: 11px; letter-spacing: .07em; text-transform: uppercase;
-    color: #adc6ff; font-weight: 600; margin-bottom: 4px; }
-  .target-callout .tc-value { font-size: 38px; font-weight: 800; line-height: 1;
-    letter-spacing: -.02em; color: #fff; }
-  .target-callout .tc-sub   { font-size: 13px; color: #bec6e0; margin-top: 3px; }
+  /* Chart canvas responsive resize */
+  #sensitivityCanvas, #autoSensitivityCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  .chart-container { height: 220px; }
+  @media (min-width: 640px) { .chart-container { height: 280px; } }
 </style>
 </head>
 
@@ -304,7 +296,7 @@
         </section>
 
         <!-- ── Target Payoff Date ─────────────────────────────────────── -->
-        <section class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border-2 border-tertiary-container/30 p-lg">
+        <section class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-lg">
 
           <div class="flex items-center gap-sm mb-md">
             <span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings:'FILL' 1">flag</span>
@@ -336,35 +328,38 @@
           </div>
 
           <!-- Result callout — always visible -->
-          <div id="h-target-result" class="target-callout">
-            <div class="grid grid-cols-2 gap-lg mb-md">
-              <div>
-                <div class="tc-label">Extra payment needed</div>
-                <div id="h-req-extra" class="tc-value">—</div>
-                <div class="tc-sub">per month on top of base</div>
+          <div id="h-target-result" class="bg-surface-container-low rounded-xl border border-outline-variant/20 overflow-hidden">
+            <div class="h-1 w-full bg-tertiary-container"></div>
+            <div class="p-md">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-md mb-md">
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Extra payment needed</p>
+                  <p id="h-req-extra" class="font-data-numeral text-[36px] leading-[42px] text-tertiary-container font-bold tracking-tight">—</p>
+                  <p class="font-body-md text-sm text-on-surface-variant mt-1">per month on top of base</p>
+                </div>
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Total monthly (P&amp;I)</p>
+                  <p id="h-req-total" class="font-data-numeral text-[36px] leading-[42px] text-primary font-bold tracking-tight">—</p>
+                  <p class="font-body-md text-sm text-on-surface-variant mt-1">base + extra combined</p>
+                </div>
               </div>
-              <div>
-                <div class="tc-label">Total monthly (P&amp;I)</div>
-                <div id="h-req-total" class="tc-value">—</div>
-                <div class="tc-sub">base + extra combined</div>
+              <div class="grid grid-cols-3 gap-sm pt-md border-t border-outline-variant/20">
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Interest avoided</p>
+                  <p id="h-req-avoided" class="font-data-numeral text-[20px] leading-7 text-secondary font-bold">—</p>
+                </div>
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Time saved</p>
+                  <p id="h-req-timesaved" class="font-data-numeral text-[20px] leading-7 text-primary font-bold">—</p>
+                </div>
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Months to go</p>
+                  <p id="h-req-months" class="font-data-numeral text-[20px] leading-7 text-primary font-bold">—</p>
+                </div>
               </div>
-            </div>
-            <div class="grid grid-cols-3 gap-md pt-md border-t border-white/20">
-              <div>
-                <div class="tc-label">Interest avoided</div>
-                <div id="h-req-avoided" class="font-bold text-[22px] text-secondary-fixed">—</div>
+              <div id="h-infeasible-msg" class="hidden mt-md bg-error-container rounded-lg p-sm">
+                <p class="font-body-md text-sm text-on-error-container"><strong>Not reachable:</strong> That date is in the past or too soon. Try a later date.</p>
               </div>
-              <div>
-                <div class="tc-label">Time saved</div>
-                <div id="h-req-timesaved" class="font-bold text-[22px] text-white">—</div>
-              </div>
-              <div>
-                <div class="tc-label">Months to go</div>
-                <div id="h-req-months" class="font-bold text-[22px] text-white">—</div>
-              </div>
-            </div>
-            <div id="h-infeasible-msg" class="hidden mt-md bg-white/10 rounded-lg p-sm border border-white/20">
-              <p class="text-sm text-white/80"><strong>Not reachable:</strong> That date is in the past or too soon. Try a later date.</p>
             </div>
           </div>
 
@@ -394,7 +389,7 @@
             </div>
           </div>
 
-          <div class="relative bg-surface-bright rounded-lg border border-outline-variant/20 overflow-hidden" style="height:280px;">
+          <div class="relative chart-container bg-surface-bright rounded-lg border border-outline-variant/20 overflow-hidden">
             <canvas id="sensitivityCanvas" style="cursor:crosshair"></canvas>
             <div id="chart-tooltip" class="bar-tooltip hidden" style="top:8px;left:50%"></div>
           </div>
@@ -708,7 +703,7 @@
         <section class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-lg">
           <h2 class="font-headline-sm text-headline-sm text-primary mb-xs">Payoff Acceleration Analysis</h2>
           <p class="font-body-md text-body-md text-on-surface-variant mb-md">$50 increments. Auto loans accelerate faster — smaller amounts move the needle significantly.</p>
-          <div class="relative bg-surface-bright rounded-lg border border-outline-variant/20 overflow-hidden" style="height:240px;">
+          <div class="relative chart-container bg-surface-bright rounded-lg border border-outline-variant/20 overflow-hidden">
             <canvas id="autoSensitivityCanvas" style="cursor:crosshair"></canvas>
             <div id="auto-chart-tooltip" class="bar-tooltip hidden" style="top:8px;left:50%"></div>
           </div>
@@ -886,18 +881,27 @@ const _hitRegions = {};
 function drawBarChart(canvasId, series, selectedExtra, sweetExtra) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const W = canvas.offsetWidth || 600;
-  const H = canvas.offsetHeight || 260;
+  const W = canvas.offsetWidth  || 600;
+  const H = canvas.offsetHeight || 220;
   canvas.width  = W * window.devicePixelRatio;
   canvas.height = H * window.devicePixelRatio;
   const ctx = canvas.getContext('2d');
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
   ctx.clearRect(0, 0, W, H);
 
-  // Filter to max ~40 visible bars, but always keep selected + sweet
+  // Responsive layout thresholds
+  const isMobile  = W < 480;
+  const isNarrow  = W < 360;
+  const fontSize  = isMobile ? 8 : 10;
+  const labelFont = `${fontSize}px Manrope, sans-serif`;
+  const boldFont  = `bold ${fontSize}px Manrope, sans-serif`;
+
+  // Reduce bar count more aggressively on small screens
+  const maxBars = isNarrow ? 20 : isMobile ? 28 : 40;
+
   let display = series;
-  if (series.length > 40) {
-    const every = Math.ceil(series.length / 40);
+  if (series.length > maxBars) {
+    const every = Math.ceil(series.length / maxBars);
     display = series.filter((d, i) =>
       i % every === 0 ||
       d.extraPayment === selectedExtra ||
@@ -905,7 +909,11 @@ function drawBarChart(canvasId, series, selectedExtra, sweetExtra) {
     );
   }
 
-  const PAD = { top: 32, right: 16, bottom: 48, left: 48 };
+  // Adaptive padding: tighter on mobile (no rotated Y-axis label, smaller left margin)
+  const PAD = isMobile
+    ? { top: 24, right: 8, bottom: 36, left: 32 }
+    : { top: 32, right: 16, bottom: 48, left: 48 };
+
   const chartW = W - PAD.left - PAD.right;
   const chartH = H - PAD.top  - PAD.bottom;
 
@@ -916,58 +924,58 @@ function drawBarChart(canvasId, series, selectedExtra, sweetExtra) {
   const barW = chartW / display.length;
   const gap  = Math.max(1, barW * 0.18);
 
-  // ── Grid lines ──────────────────────────────────────────────────────────
+  // ── Grid lines ────────────────────────────────────────────────────────────
   ctx.strokeStyle = '#e0e3e5';
   ctx.lineWidth   = 1;
   ctx.setLineDash([4, 4]);
-  const gridSteps = 4;
+  const gridSteps = isMobile ? 3 : 4;
   for (let g = 0; g <= gridSteps; g++) {
-    const yPx  = PAD.top + chartH * (g / gridSteps);
+    const yPx = PAD.top + chartH * (g / gridSteps);
     ctx.beginPath();
     ctx.moveTo(PAD.left, yPx);
     ctx.lineTo(PAD.left + chartW, yPx);
     ctx.stroke();
     const yVal = maxYrs - (yRange * g / gridSteps);
     ctx.fillStyle = '#76777d';
-    ctx.font = '10px Manrope, sans-serif';
+    ctx.font = labelFont;
     ctx.textAlign = 'right';
-    ctx.fillText(yVal.toFixed(1) + 'y', PAD.left - 6, yPx + 4);
+    ctx.fillText(yVal.toFixed(1) + 'y', PAD.left - 4, yPx + fontSize * 0.4);
   }
   ctx.setLineDash([]);
 
-  // Y axis label
-  ctx.save();
-  ctx.translate(13, PAD.top + chartH / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillStyle = '#76777d';
-  ctx.font = '10px Manrope, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('Years Remaining', 0, 0);
-  ctx.restore();
+  // Y axis label — skip on very narrow screens
+  if (!isMobile) {
+    ctx.save();
+    ctx.translate(13, PAD.top + chartH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = '#76777d';
+    ctx.font = labelFont;
+    ctx.textAlign = 'center';
+    ctx.fillText('Years Remaining', 0, 0);
+    ctx.restore();
+  }
 
-  // ── Bars + hit regions ─────────────────────────────────────────────────
+  // ── Bars + hit regions ───────────────────────────────────────────────────
   const hits = [];
 
   display.forEach((d, idx) => {
-    const bx  = PAD.left + idx * barW + gap / 2;
-    const bw  = Math.max(2, barW - gap);
-    const bh  = Math.max(3, chartH * (d.yearsRemaining - minYrs) / yRange);
-    const by  = PAD.top + chartH - bh;
+    const bx = PAD.left + idx * barW + gap / 2;
+    const bw = Math.max(2, barW - gap);
+    const bh = Math.max(3, chartH * (d.yearsRemaining - minYrs) / yRange);
+    const by = PAD.top + chartH - bh;
 
-    // ── Color ──────────────────────────────────────────────────────────
     const isSelected = d.extraPayment === selectedExtra;
     const isSweet    = d.extraPayment === sweetExtra;
-    let baseColor, hoverColor;
-    if (isSelected)        { baseColor = '#001a42'; hoverColor = '#1a3a6a'; }
-    else if (d.extraPayment <= sweetExtra) { baseColor = '#006c49'; hoverColor = '#00a06a'; }
-    else                   { baseColor = '#c8cace'; hoverColor = '#a0a4a8'; }
+    let baseColor;
+    if (isSelected)                          { baseColor = '#001a42'; }
+    else if (d.extraPayment <= sweetExtra)   { baseColor = '#006c49'; }
+    else                                     { baseColor = '#c8cace'; }
 
     ctx.fillStyle = baseColor;
     ctx.beginPath();
     ctx.roundRect(bx, by, bw, bh, [4, 4, 0, 0]);
     ctx.fill();
 
-    // ── Selected bar highlight glow ────────────────────────────────────
     if (isSelected) {
       ctx.save();
       ctx.shadowColor = 'rgba(0,26,66,.4)';
@@ -979,50 +987,54 @@ function drawBarChart(canvasId, series, selectedExtra, sweetExtra) {
       ctx.restore();
     }
 
-    // ── Sweet spot top marker ──────────────────────────────────────────
-    if (isSweet) {
+    // Sweet spot marker
+    if (isSweet && !isMobile) {
       ctx.fillStyle = '#b85c00';
-      ctx.font = 'bold 9px Manrope, sans-serif';
+      ctx.font = `bold ${fontSize}px Manrope, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText('★', bx + bw / 2, PAD.top - 12);
     }
 
-    // ── Data label on selected bar and every 5th step ──────────────────
+    // Data labels — on mobile only show selected + sweet to avoid crowding
     const step = (series[1]?.extraPayment ?? 100) - (series[0]?.extraPayment ?? 0);
-    const showLabel = isSelected || isSweet || (d.extraPayment % (step * 5) === 0 && step > 0);
+    const showLabel = isSelected || isSweet ||
+      (!isMobile && d.extraPayment % (step * 5) === 0 && step > 0);
     if (showLabel) {
       ctx.fillStyle = isSelected ? '#001a42' : '#45464d';
-      ctx.font      = isSelected ? 'bold 10px Manrope, sans-serif' : '9px Manrope, sans-serif';
+      ctx.font      = isSelected ? boldFont : labelFont;
       ctx.textAlign = 'center';
-      ctx.fillText(d.yearsRemaining.toFixed(1) + 'y', bx + bw / 2, by - 5);
+      ctx.fillText(d.yearsRemaining.toFixed(1) + 'y', bx + bw / 2, by - 3);
     }
 
-    // ── X-axis label ───────────────────────────────────────────────────
-    const showX = isSelected || isSweet || (d.extraPayment % (step * 5) === 0 && step > 0);
+    // X-axis labels — more aggressive culling on mobile
+    const showX = isSelected || isSweet ||
+      (!isMobile && d.extraPayment % (step * 5) === 0 && step > 0);
     if (showX) {
       ctx.fillStyle = isSelected ? '#001a42' : '#76777d';
-      ctx.font      = isSelected ? 'bold 10px Manrope, sans-serif' : '9px Manrope, sans-serif';
+      ctx.font      = isSelected ? boldFont : labelFont;
       ctx.textAlign = 'center';
-      ctx.fillText('$' + d.extraPayment.toLocaleString(), bx + bw / 2, H - PAD.bottom + 14);
+      const xLabel = isMobile
+        ? (d.extraPayment >= 1000 ? '$' + (d.extraPayment / 1000).toFixed(0) + 'k' : '$' + d.extraPayment)
+        : '$' + d.extraPayment.toLocaleString();
+      ctx.fillText(xLabel, bx + bw / 2, H - PAD.bottom + fontSize + 2);
     }
 
-    // ── Store hit region (CSS pixel coords, not scaled) ────────────────
     hits.push({ x: bx, y: by, w: bw, h: bh, data: d, isSweet, isSelected });
   });
 
   // X axis label
   ctx.fillStyle = '#76777d';
-  ctx.font = '10px Manrope, sans-serif';
+  ctx.font = labelFont;
   ctx.textAlign = 'center';
-  ctx.fillText('Additional Monthly Payment', PAD.left + chartW / 2, H - 5);
+  ctx.fillText('Additional Monthly Payment', PAD.left + chartW / 2, H - (isMobile ? 2 : 5));
 
-  // Sweet spot legend label
-  if (sweetExtra !== undefined) {
+  // Sweet spot legend — desktop only
+  if (!isMobile && sweetExtra !== undefined) {
     const sIdx = display.findIndex(d => d.extraPayment >= sweetExtra);
     if (sIdx >= 0) {
       const sx = PAD.left + sIdx * barW + barW / 2;
       ctx.fillStyle = '#b85c00';
-      ctx.font = 'bold 9px Manrope, sans-serif';
+      ctx.font = boldFont;
       ctx.textAlign = 'center';
       ctx.fillText('Sweet Spot', sx, PAD.top - 2);
     }
@@ -1338,11 +1350,40 @@ window.addEventListener('load', () => {
   wireChartEvents('autoSensitivityCanvas', 'auto-chart-tooltip', (extra) => {
     setAutoExtra(extra);
   });
-});
 
-window.addEventListener('resize', () => {
-  calcHome();
-  calcAuto();
+  // Touch support: tap a bar to select it (no tooltip on mobile)
+  function wireTouchChart(canvasId, onSelectExtra) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      const rect  = canvas.getBoundingClientRect();
+      const mx    = touch.clientX - rect.left;
+      const my    = touch.clientY - rect.top;
+      const hits  = _hitRegions[canvasId] || [];
+      let found = null, closestDx = Infinity;
+      for (const h of hits) {
+        const cx = h.x + h.w / 2;
+        const dx = Math.abs(mx - cx);
+        if (dx < h.w / 2 + 8 && my >= h.y - 12 && my <= h.y + h.h + 8 && dx < closestDx) {
+          found = h; closestDx = dx;
+        }
+      }
+      if (found && onSelectExtra) onSelectExtra(found.data.extraPayment);
+    }, { passive: false });
+  }
+  wireTouchChart('sensitivityCanvas',     (extra) => setHomeExtra(extra));
+  wireTouchChart('autoSensitivityCanvas', (extra) => setAutoExtra(extra));
+
+  // ResizeObserver: redraw charts when container changes size (orientation change, etc.)
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => { calcHome(); calcAuto(); });
+    ['sensitivityCanvas', 'autoSensitivityCanvas'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.parentElement) ro.observe(el.parentElement);
+    });
+  }
 });
 </script>
 </body>
