@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Loan Payoff Calculator — loan_tool</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="loan-math.js"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "tertiary-fixed-dim": "#adc6ff",
+          "tertiary-fixed": "#d8e2ff",
+          "outline-variant": "#c6c6cd",
+          "error-container": "#ffdad6",
+          "primary-container": "#131b2e",
+          "primary-fixed-dim": "#bec6e0",
+          "secondary-fixed": "#6ffbbe",
+          "secondary": "#006c49",
+          "background": "#f7f9fb",
+          "surface-container-highest": "#e0e3e5",
+          "inverse-on-surface": "#eff1f3",
+          "primary-fixed": "#dae2fd",
+          "primary": "#000000",
+          "surface": "#f7f9fb",
+          "secondary-fixed-dim": "#4edea3",
+          "error": "#ba1a1a",
+          "on-error": "#ffffff",
+          "surface-variant": "#e0e3e5",
+          "surface-container-lowest": "#ffffff",
+          "tertiary": "#000000",
+          "inverse-surface": "#2d3133",
+          "on-primary-container": "#7c839b",
+          "secondary-container": "#6cf8bb",
+          "surface-container-low": "#f2f4f6",
+          "tertiary-container": "#001a42",
+          "on-primary-fixed": "#131b2e",
+          "inverse-primary": "#bec6e0",
+          "on-primary-fixed-variant": "#3f465c",
+          "on-tertiary-fixed": "#001a42",
+          "on-secondary-container": "#00714d",
+          "surface-container-high": "#e6e8ea",
+          "on-secondary-fixed-variant": "#005236",
+          "on-tertiary": "#ffffff",
+          "on-tertiary-container": "#3980f4",
+          "on-background": "#191c1e",
+          "outline": "#76777d",
+          "on-secondary": "#ffffff",
+          "on-primary": "#ffffff",
+          "on-surface": "#191c1e",
+          "surface-tint": "#565e74",
+          "on-surface-variant": "#45464d",
+          "surface-container": "#eceef0",
+          "surface-bright": "#f7f9fb",
+          "surface-dim": "#d8dadc",
+          "on-secondary-fixed": "#002113",
+          "on-tertiary-fixed-variant": "#004395",
+          "on-error-container": "#93000a"
+        },
+        borderRadius: { DEFAULT:"0.25rem", lg:"0.5rem", xl:"0.75rem", full:"9999px" },
+        spacing: {
+          "container-max":"1200px","xs":"0.5rem","base":"4px",
+          "sm":"1rem","lg":"2.5rem","gutter":"24px","md":"1.5rem","xl":"4rem"
+        },
+        fontFamily: {
+          "body-lg":["Manrope"],"display-lg-mobile":["Manrope"],"headline-sm":["Manrope"],
+          "headline-md":["Manrope"],"label-md":["Manrope"],"data-numeral":["Manrope"],
+          "display-lg":["Manrope"],"body-md":["Manrope"]
+        },
+        fontSize: {
+          "body-lg":["18px",{"lineHeight":"28px","fontWeight":"400"}],
+          "display-lg-mobile":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"800"}],
+          "headline-sm":["20px",{"lineHeight":"28px","fontWeight":"600"}],
+          "headline-md":["24px",{"lineHeight":"32px","fontWeight":"700"}],
+          "label-md":["14px",{"lineHeight":"20px","letterSpacing":"0.05em","fontWeight":"600"}],
+          "data-numeral":["24px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"500"}],
+          "display-lg":["48px",{"lineHeight":"56px","letterSpacing":"-0.02em","fontWeight":"800"}],
+          "body-md":["16px",{"lineHeight":"24px","fontWeight":"400"}]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .material-symbols-fill     { font-variation-settings: 'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .chart-grid-line { stroke:#e0e3e5; stroke-width:1; stroke-dasharray:4 4; }
+
+  /* Slider custom styling */
+  input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:6px;
+    background: linear-gradient(to right, #006c49 var(--pct,30%), #e0e3e5 var(--pct,30%));
+    border-radius:9999px; outline:none; cursor:pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none;
+    width:22px; height:22px; border-radius:50%; background:#fff; border:3px solid #006c49;
+    box-shadow:0 2px 8px rgba(0,108,73,.25); cursor:pointer; transition:transform .15s; }
+  input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.15); }
+
+  /* Tab transitions */
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  /* Mode toggle */
+  .mode-btn { transition: all .2s; }
+  .mode-btn.active { background:#001a42; color:#fff; }
+
+  /* Tooltip */
+  [data-tooltip] { position:relative; }
+  [data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+    background:#1a1a1a; color:#fff; font-size:11px; white-space:nowrap;
+    padding:4px 8px; border-radius:4px; pointer-events:none; z-index:50;
+  }
+
+  /* Chart canvas */
+  #sensitivityCanvas     { width:100%; height:260px; display:block; }
+  #autoSensitivityCanvas { width:100%; height:240px; display:block; }
+
+  /* Bar chart hover tooltip */
+  .bar-tooltip {
+    position: absolute;
+    background: #001a42;
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-family: Manrope, sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+    pointer-events: none;
+    box-shadow: 0 4px 20px rgba(0,26,66,.35);
+    min-width: 160px;
+    z-index: 20;
+    transform: translateX(-50%);
+    transition: opacity .1s;
+  }
+  .bar-tooltip.hidden { opacity: 0; }
+  .bar-tooltip-title  { font-weight: 700; font-size: 13px; margin-bottom: 4px; color: #adc6ff; }
+  .bar-tooltip-row    { display: flex; justify-content: space-between; gap: 16px; }
+  .bar-tooltip-val    { font-weight: 600; }
+  .bar-tooltip-badge  { display: inline-block; background: #b85c00; color: #fff;
+    font-size: 10px; padding: 1px 6px; border-radius: 20px; margin-top: 4px; }
+  .bar-tooltip-badge.green { background: #006c49; }
+
+  /* Target date result callout */
+  .target-callout {
+    background: linear-gradient(135deg, #001a42 0%, #003080 100%);
+    border-radius: 12px;
+    padding: 20px 24px;
+    color: #fff;
+  }
+  .target-callout .tc-label { font-size: 11px; letter-spacing: .07em; text-transform: uppercase;
+    color: #adc6ff; font-weight: 600; margin-bottom: 4px; }
+  .target-callout .tc-value { font-size: 38px; font-weight: 800; line-height: 1;
+    letter-spacing: -.02em; color: #fff; }
+  .target-callout .tc-sub   { font-size: 13px; color: #bec6e0; margin-top: 3px; }
+</style>
+</head>
+
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen flex flex-col">
+
+<!-- ══ Nav ══════════════════════════════════════════════════════════════════ -->
+<header class="bg-surface-container-lowest shadow-sm flex justify-between items-center w-full px-gutter max-w-container-max mx-auto h-16 sticky top-0 z-50">
+  <div class="flex items-center gap-xl">
+    <a href="https://github.com/ChrisGute/loan_tool" target="_blank" rel="noopener" class="font-headline-md text-headline-md font-extrabold text-primary hover:opacity-80 transition-opacity no-underline">loan_tool</a>
+    <nav class="hidden md:flex items-center gap-lg">
+      <button onclick="switchTab('home')" id="nav-home"
+        class="font-body-md text-body-md font-medium text-primary font-bold border-b-2 border-primary pb-1 transition-colors">
+        Home Loans
+      </button>
+      <button onclick="switchTab('auto')" id="nav-auto"
+        class="font-body-md text-body-md font-medium text-on-surface-variant hover:text-primary transition-colors pb-1 border-b-2 border-transparent">
+        Auto Loans
+      </button>
+    </nav>
+  </div>
+  <div class="hidden md:flex items-center gap-md">
+    <a href="https://github.com/ChrisGute/loan_tool" target="_blank" rel="noopener" title="GitHub" class="text-on-surface-variant hover:text-primary transition-colors flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+    </a>
+    <a href="https://www.linkedin.com/in/gute/" target="_blank" rel="noopener" title="LinkedIn" class="text-on-surface-variant hover:text-primary transition-colors flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    </a>
+  </div>
+</header>
+
+<!-- ══ Main ═════════════════════════════════════════════════════════════════ -->
+<main class="flex-grow w-full max-w-container-max mx-auto px-gutter py-xl">
+
+  <!-- ── Home Loan Tab ──────────────────────────────────────────────────── -->
+  <div id="tab-home" class="tab-panel active">
+
+    <div class="mb-xl">
+      <h1 class="font-display-lg text-display-lg text-primary mb-sm">Mortgage Payoff Optimizer</h1>
+      <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+        See exactly how extra payments accelerate payoff, identify the efficiency sweet spot, and reverse-engineer the payment needed to hit any target date.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-xl items-start">
+
+      <!-- Left Column: Inputs + Graph (7 cols) -->
+      <div class="lg:col-span-7 flex flex-col gap-lg">
+
+        <!-- ── Loan Inputs ────────────────────────────────────────────── -->
+        <section class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-lg">
+          <h2 class="font-headline-sm text-headline-sm text-primary mb-md">Loan Details</h2>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-md">
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Purchase Price / Loan Amount</label>
+              <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-medium">$</span>
+              <input id="h-principal" type="text" value="365,000"
+                class="w-full pl-7 pr-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container focus:border-transparent"
+                oninput="debouncedCalc()"></div>
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Annual Interest Rate</label>
+              <div class="relative">
+              <input id="h-rate" type="text" value="5.50"
+                class="w-full pl-3 pr-8 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                oninput="debouncedCalc()">
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">%</span></div>
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Loan Term</label>
+              <select id="h-term"
+                class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                onchange="calcHome()">
+                <option value="360" selected>30 years</option>
+                <option value="300">25 years</option>
+                <option value="240">20 years</option>
+                <option value="180">15 years</option>
+                <option value="120">10 years</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Loan Start Date</label>
+              <input id="h-start" type="month" value="2022-06"
+                class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                onchange="calcHome()">
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Current Balance</label>
+              <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-medium">$</span>
+              <input id="h-balance" type="text" value="296,226.34"
+                class="w-full pl-7 pr-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                oninput="debouncedCalc()"></div>
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Balance as of</label>
+              <input id="h-currdate" type="month" value="2026-05"
+                class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                onchange="calcHome()">
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Extra Payment Slider ───────────────────────────────────── -->
+        <section class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-lg">
+
+          <div class="flex justify-between items-end mb-md">
+            <div>
+              <h2 class="font-headline-sm text-headline-sm text-primary mb-xs">Additional Monthly Payment</h2>
+              <p class="font-body-md text-body-md text-on-surface-variant">Applied directly to your principal balance each month.</p>
+            </div>
+            <div class="text-right">
+              <span id="h-extra-display" class="font-data-numeral text-[40px] leading-[48px] text-tertiary-container font-semibold tracking-tight">$500</span>
+              <span class="font-body-md text-body-md text-on-surface-variant block">/&thinsp;mo</span>
+            </div>
+          </div>
+
+          <div class="relative my-md px-1">
+            <input id="h-extra-slider" type="range" min="0" max="5000" step="100" value="500"
+              style="--pct: 10%" oninput="onHomeSlider(this)">
+            <div class="flex justify-between mt-2 font-label-md text-label-md text-on-surface-variant">
+              <span>$0</span><span id="h-slider-max-label">$5,000</span>
+            </div>
+          </div>
+
+          <!-- Quick presets -->
+          <div class="flex flex-wrap gap-xs mt-md pt-md border-t border-outline-variant/20">
+            <span class="font-label-md text-label-md text-on-surface-variant flex items-center mr-xs">Quick:</span>
+            <button onclick="setHomeExtra(100)"  class="preset-btn font-label-md text-label-md px-4 py-2 rounded-full border border-outline-variant text-primary hover:bg-surface-container-low hover:border-primary transition-all">+$100</button>
+            <button onclick="setHomeExtra(250)"  class="preset-btn font-label-md text-label-md px-4 py-2 rounded-full border border-outline-variant text-primary hover:bg-surface-container-low hover:border-primary transition-all">+$250</button>
+            <button onclick="setHomeExtra(500)"  class="preset-btn font-label-md text-label-md px-4 py-2 rounded-full border border-outline-variant text-primary hover:bg-surface-container-low hover:border-primary transition-all">+$500</button>
+            <button onclick="setHomeExtra(900)"  class="preset-btn font-label-md text-label-md px-4 py-2 rounded-full border border-outline-variant text-primary hover:bg-surface-container-low hover:border-primary transition-all">+$900 ★</button>
+            <button onclick="setHomeExtra(1500)" class="preset-btn font-label-md text-label-md px-4 py-2 rounded-full border border-outline-variant text-primary hover:bg-surface-container-low hover:border-primary transition-all">+$1,500</button>
+          </div>
+
+          <!-- Graph range control -->
+          <div class="flex items-center gap-md mt-md pt-md border-t border-outline-variant/20">
+            <span class="font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Graph range max:</span>
+            <input id="h-graph-max" type="number" value="5000" min="500" max="20000" step="500"
+              class="w-28 px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[14px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+              onchange="calcHome()">
+            <span class="font-label-md text-label-md text-on-surface-variant">/ $100 steps</span>
+          </div>
+        </section>
+
+        <!-- ── Target Payoff Date ─────────────────────────────────────── -->
+        <section class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border-2 border-tertiary-container/30 p-lg">
+
+          <div class="flex items-center gap-sm mb-md">
+            <span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings:'FILL' 1">flag</span>
+            <div>
+              <h2 class="font-headline-sm text-headline-sm text-primary">Target Payoff Date</h2>
+              <p class="font-body-md text-body-md text-on-surface-variant">Pick when you want to be debt-free — we'll solve for the exact monthly payment.</p>
+            </div>
+          </div>
+
+          <!-- Year buttons + date picker on one row -->
+          <div class="flex flex-wrap items-end gap-sm mb-lg">
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Pay off in</label>
+              <div class="flex gap-xs flex-wrap">
+                <button onclick="setTargetYears(5)"  class="font-label-md text-label-md px-4 py-2.5 rounded-full border-2 border-outline-variant text-primary hover:border-tertiary-container hover:bg-tertiary-fixed transition-all">5 yrs</button>
+                <button onclick="setTargetYears(6)"  class="font-label-md text-label-md px-4 py-2.5 rounded-full border-2 border-outline-variant text-primary hover:border-tertiary-container hover:bg-tertiary-fixed transition-all">6 yrs</button>
+                <button onclick="setTargetYears(8)"  class="font-label-md text-label-md px-4 py-2.5 rounded-full border-2 border-outline-variant text-primary hover:border-tertiary-container hover:bg-tertiary-fixed transition-all">8 yrs</button>
+                <button onclick="setTargetYears(10)" class="font-label-md text-label-md px-4 py-2.5 rounded-full border-2 border-outline-variant text-primary hover:border-tertiary-container hover:bg-tertiary-fixed transition-all">10 yrs</button>
+                <button onclick="setTargetYears(15)" class="font-label-md text-label-md px-4 py-2.5 rounded-full border-2 border-outline-variant text-primary hover:border-tertiary-container hover:bg-tertiary-fixed transition-all">15 yrs</button>
+                <button onclick="setTargetYears(20)" class="font-label-md text-label-md px-4 py-2.5 rounded-full border-2 border-outline-variant text-primary hover:border-tertiary-container hover:bg-tertiary-fixed transition-all">20 yrs</button>
+              </div>
+            </div>
+            <div class="flex flex-col">
+              <label class="font-label-md text-label-md text-on-surface-variant mb-xs">or pick an exact date</label>
+              <input id="h-target-date" type="month" value="2038-01"
+                class="px-3 py-2.5 rounded-lg border-2 border-tertiary-container/40 bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                oninput="calcHome()">
+            </div>
+          </div>
+
+          <!-- Result callout — always visible -->
+          <div id="h-target-result" class="target-callout">
+            <div class="grid grid-cols-2 gap-lg mb-md">
+              <div>
+                <div class="tc-label">Extra payment needed</div>
+                <div id="h-req-extra" class="tc-value">—</div>
+                <div class="tc-sub">per month on top of base</div>
+              </div>
+              <div>
+                <div class="tc-label">Total monthly (P&amp;I)</div>
+                <div id="h-req-total" class="tc-value">—</div>
+                <div class="tc-sub">base + extra combined</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-md pt-md border-t border-white/20">
+              <div>
+                <div class="tc-label">Interest avoided</div>
+                <div id="h-req-avoided" class="font-bold text-[22px] text-secondary-fixed">—</div>
+              </div>
+              <div>
+                <div class="tc-label">Time saved</div>
+                <div id="h-req-timesaved" class="font-bold text-[22px] text-white">—</div>
+              </div>
+              <div>
+                <div class="tc-label">Months to go</div>
+                <div id="h-req-months" class="font-bold text-[22px] text-white">—</div>
+              </div>
+            </div>
+            <div id="h-infeasible-msg" class="hidden mt-md bg-white/10 rounded-lg p-sm border border-white/20">
+              <p class="text-sm text-white/80"><strong>Not reachable:</strong> That date is in the past or too soon. Try a later date.</p>
+            </div>
+          </div>
+
+          <!-- Benchmark rate (tucked below) -->
+          <div class="flex items-center gap-sm mt-md pt-md border-t border-outline-variant/20">
+            <span class="font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Benchmark rate (for comparison):</span>
+            <div class="relative w-24">
+              <input id="h-bench" type="text" value="5.0"
+                class="w-full pl-3 pr-7 py-1.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[14px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                oninput="debouncedCalc()">
+              <span class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">%</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Sensitivity Chart ─────────────────────────────────────── -->
+        <section id="h-chart-section" class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-lg">
+          <div class="mb-md flex justify-between items-start flex-wrap gap-sm">
+            <div>
+              <h2 class="font-headline-sm text-headline-sm text-primary mb-xs">Payoff Acceleration Analysis</h2>
+              <p class="font-body-md text-body-md text-on-surface-variant">Each bar = additional $100/mo. Hover for details. Green zone = high efficiency.</p>
+            </div>
+            <div class="flex items-center gap-sm text-[12px] text-on-surface-variant font-label-md">
+              <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm inline-block" style="background:#001a42"></span> Selected</span>
+              <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm inline-block" style="background:#006c49"></span> Efficient</span>
+              <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm inline-block bg-surface-container-highest"></span> Diminishing</span>
+            </div>
+          </div>
+
+          <div class="relative bg-surface-bright rounded-lg border border-outline-variant/20 overflow-hidden" style="height:280px;">
+            <canvas id="sensitivityCanvas" style="cursor:crosshair"></canvas>
+            <div id="chart-tooltip" class="bar-tooltip hidden" style="top:8px;left:50%"></div>
+          </div>
+        </section>
+
+        <!-- ── Lump Sum Panel ─────────────────────────────────────────── -->
+        <section class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-lg">
+          <h2 class="font-headline-sm text-headline-sm text-primary mb-xs">One-Time Lump Sum Payment</h2>
+          <p class="font-body-md text-body-md text-on-surface-variant mb-md">Apply a bonus, tax refund, or windfall to your principal at a future date.</p>
+          <div class="grid grid-cols-2 gap-md mb-md">
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Lump Sum Amount</label>
+              <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-medium">$</span>
+              <input id="h-lump" type="text" value="10,000"
+                class="w-full pl-7 pr-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                oninput="debouncedCalc()"></div>
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Application Date</label>
+              <input id="h-lump-date" type="month" value="2026-12"
+                class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                onchange="calcHome()">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-sm" id="h-lump-cards">
+            <div class="bg-surface-container-low rounded-xl p-md border border-outline-variant/10">
+              <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Balance After Lump</p>
+              <p id="h-lump-bal" class="font-data-numeral text-data-numeral text-primary font-bold">—</p>
+            </div>
+            <div class="bg-surface-container-low rounded-xl p-md border border-outline-variant/10">
+              <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Interest Avoided</p>
+              <p id="h-lump-avoided" class="font-data-numeral text-data-numeral text-secondary font-bold">—</p>
+            </div>
+            <div class="bg-secondary/10 rounded-xl p-md border border-secondary/20">
+              <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Payoff w/ Lump + Extra</p>
+              <p id="h-lump-payoff" class="font-data-numeral text-data-numeral text-tertiary-container font-bold">—</p>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /left col -->
+
+      <!-- Right Column: Summary Cards (5 cols) -->
+      <div class="lg:col-span-5">
+        <div class="sticky top-24 flex flex-col gap-md">
+
+          <!-- Primary Summary Card -->
+          <article class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 overflow-hidden">
+            <div class="h-2 w-full bg-secondary"></div>
+            <div class="p-lg">
+              <div class="flex items-center gap-sm mb-lg">
+                <span class="material-symbols-outlined text-secondary" style="font-variation-settings:'FILL' 1">savings</span>
+                <h3 class="font-headline-sm text-headline-sm text-primary">Your Projected Savings</h3>
+              </div>
+
+              <div class="mb-lg">
+                <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Total Interest Avoided</p>
+                <div class="flex items-baseline gap-xs">
+                  <span id="h-int-avoided" class="font-data-numeral text-[48px] leading-[56px] text-secondary font-bold tracking-tight">$60,375</span>
+                  <span class="material-symbols-outlined text-secondary text-sm">trending_down</span>
+                </div>
+                <p id="h-int-avoided-sub" class="font-body-md text-sm text-on-surface-variant mt-1">vs. paying minimums only</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-md mb-lg pt-md border-t border-outline-variant/20">
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">New Payoff Date</p>
+                  <p id="h-payoff-date" class="font-headline-md text-headline-md text-tertiary-container font-bold">Jan 2040</p>
+                </div>
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Time Saved</p>
+                  <p id="h-time-saved" class="font-headline-md text-headline-md text-primary font-bold">5.7 yrs</p>
+                </div>
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Remaining Interest</p>
+                  <p id="h-rem-int" class="font-headline-md text-headline-md text-primary">$125,868</p>
+                </div>
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Total Monthly (P&I)</p>
+                  <p id="h-total-pmt" class="font-headline-md text-headline-md text-primary">$2,572</p>
+                </div>
+              </div>
+
+              <button class="w-full bg-secondary hover:bg-on-secondary-fixed-variant text-on-secondary font-label-md text-label-md py-4 rounded-full transition-colors flex items-center justify-center gap-xs shadow-md">
+                <span class="material-symbols-outlined text-xl">check_circle</span>
+                Apply This Payment Plan
+              </button>
+              <p class="text-center font-body-md text-sm text-on-surface-variant mt-sm">Setup automatic recurring principal transfers.</p>
+            </div>
+          </article>
+
+          <!-- Schedule Status Card -->
+          <article class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-md">
+            <div class="flex items-center gap-sm mb-md">
+              <span id="h-drift-icon" class="material-symbols-outlined text-secondary" style="font-variation-settings:'FILL' 1">schedule</span>
+              <h4 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Schedule Status</h4>
+            </div>
+            <div class="grid grid-cols-2 gap-md mb-md">
+              <div>
+                <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Months Ahead</p>
+                <p id="h-months-ahead" class="font-data-numeral text-data-numeral text-secondary font-bold">+80 months</p>
+              </div>
+              <div>
+                <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Dollar Ahead</p>
+                <p id="h-dollar-drift" class="font-data-numeral text-data-numeral text-secondary font-bold">$47,874</p>
+              </div>
+            </div>
+            <p id="h-drift-narrative" class="font-body-md text-sm text-on-surface-variant bg-surface-container-low rounded-lg p-sm border border-outline-variant/10 leading-relaxed">
+              Your balance is $47,874 below what your original schedule predicted, putting you 6.7 years ahead of your June 2052 original payoff date.
+            </p>
+          </article>
+
+          <!-- Sweet Spot Card -->
+          <article class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-md">
+            <div class="flex items-center gap-sm mb-sm">
+              <span class="material-symbols-outlined text-[#b85c00]" style="font-variation-settings:'FILL' 1">auto_awesome</span>
+              <h4 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Efficiency Sweet Spot</h4>
+            </div>
+            <p id="h-sweet-val" class="font-data-numeral text-[32px] leading-9 text-tertiary-container font-bold mb-xs">$900/mo extra</p>
+            <p id="h-sweet-desc" class="font-body-md text-sm text-on-surface-variant leading-relaxed">
+              At $900/mo, each $100 saves 6.5 months. Past this point returns fall below the average — your money may work harder elsewhere.
+            </p>
+          </article>
+
+          <!-- Benchmark Card -->
+          <article class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-md">
+            <div class="flex items-center gap-sm mb-sm">
+              <span class="material-symbols-outlined text-on-surface-variant" style="font-variation-settings:'FILL' 1">account_balance</span>
+              <h4 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">vs. Investing (<span id="h-bench-label">5.0</span>% Benchmark)</h4>
+            </div>
+            <div id="h-bench-result" class="font-body-md text-sm text-on-surface-variant leading-relaxed bg-surface-container-low rounded-lg p-sm border border-outline-variant/10">
+              Loading…
+            </div>
+          </article>
+
+          <!-- Loan Profile Card -->
+          <article class="bg-surface-container-low rounded-xl p-md border border-outline-variant/10">
+            <h4 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-md">Current Loan Profile</h4>
+            <div class="space-y-sm">
+              <div class="flex justify-between items-center">
+                <span class="font-body-md text-body-md text-on-surface-variant">Scheduled Balance Today</span>
+                <span id="h-sched-bal" class="font-data-numeral text-data-numeral text-primary">$344,100</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="font-body-md text-body-md text-on-surface-variant">Actual Balance</span>
+                <span id="h-actual-bal" class="font-data-numeral text-data-numeral text-primary">$296,226</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="font-body-md text-body-md text-on-surface-variant">Base Monthly P&I</span>
+                <span id="h-base-pmt" class="font-data-numeral text-data-numeral text-primary">$2,072</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="font-body-md text-body-md text-on-surface-variant">Interest Paid to Date</span>
+                <span id="h-int-paid" class="font-data-numeral text-data-numeral text-primary">$28,631</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="font-body-md text-body-md text-on-surface-variant">Baseline Payoff (min)</span>
+                <span id="h-baseline-payoff" class="font-data-numeral text-data-numeral text-primary">Oct 2045</span>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div><!-- /right col -->
+
+    </div>
+  </div><!-- /tab-home -->
+
+  <!-- ── Auto Loan Tab ──────────────────────────────────────────────────── -->
+  <div id="tab-auto" class="tab-panel">
+
+    <div class="mb-xl">
+      <h1 class="font-display-lg text-display-lg text-primary mb-sm">Auto Loan Payoff Optimizer</h1>
+      <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+        Auto loans are shorter-term and higher-rate — every extra dollar hits harder. Find your payoff sweet spot or pick the exact month you want your car paid off.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-xl items-start">
+
+      <!-- Left Column -->
+      <div class="lg:col-span-7 flex flex-col gap-lg">
+
+        <!-- Auto Inputs -->
+        <section class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-lg">
+          <h2 class="font-headline-sm text-headline-sm text-primary mb-md">Auto Loan Details</h2>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-md">
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Original Loan Amount</label>
+              <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-medium">$</span>
+              <input id="a-principal" type="text" value="32,000"
+                class="w-full pl-7 pr-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                oninput="debouncedCalcAuto()"></div>
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Annual Interest Rate</label>
+              <div class="relative">
+              <input id="a-rate" type="text" value="7.90"
+                class="w-full pl-3 pr-8 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                oninput="debouncedCalcAuto()">
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">%</span></div>
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Loan Term</label>
+              <select id="a-term"
+                class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                onchange="calcAuto()">
+                <option value="72" selected>72 months (6yr)</option>
+                <option value="60">60 months (5yr)</option>
+                <option value="48">48 months (4yr)</option>
+                <option value="36">36 months (3yr)</option>
+                <option value="24">24 months (2yr)</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Loan Start Date</label>
+              <input id="a-start" type="month" value="2023-01"
+                class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                onchange="calcAuto()">
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Current Balance</label>
+              <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-medium">$</span>
+              <input id="a-balance" type="text" placeholder="e.g. 24,800"
+                class="w-full pl-7 pr-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                oninput="debouncedCalcAuto()"></div>
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Balance as of</label>
+              <input id="a-currdate" type="month" value="2024-07"
+                class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                onchange="calcAuto()">
+            </div>
+          </div>
+        </section>
+
+        <!-- Auto Mode Toggle -->
+        <section class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-lg">
+          <div class="flex items-center gap-xs mb-lg bg-surface-container-low rounded-full p-1 w-fit">
+            <button id="a-mode-extra" onclick="setAutoMode('extra')"
+              class="mode-btn active font-label-md text-label-md px-5 py-2 rounded-full">
+              Extra Payment
+            </button>
+            <button id="a-mode-target" onclick="setAutoMode('target')"
+              class="mode-btn font-label-md text-label-md px-5 py-2 rounded-full text-on-surface-variant">
+              Target Payoff Date
+            </button>
+          </div>
+
+          <!-- Extra Payment -->
+          <div id="a-mode-extra-panel">
+            <div class="flex justify-between items-end mb-md">
+              <div>
+                <h2 class="font-headline-sm text-headline-sm text-primary mb-xs">Additional Monthly Payment</h2>
+                <p class="font-body-md text-body-md text-on-surface-variant">Extra principal payment on top of your regular bill.</p>
+              </div>
+              <div class="text-right">
+                <span id="a-extra-display" class="font-data-numeral text-[40px] leading-[48px] text-tertiary-container font-semibold tracking-tight">$100</span>
+                <span class="font-body-md text-body-md text-on-surface-variant block">/&thinsp;mo</span>
+              </div>
+            </div>
+            <div class="relative my-md px-1">
+              <input id="a-extra-slider" type="range" min="0" max="1000" step="50" value="100"
+                style="--pct: 10%" oninput="onAutoSlider(this)">
+              <div class="flex justify-between mt-2 font-label-md text-label-md text-on-surface-variant">
+                <span>$0</span><span>$1,000</span>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-xs pt-md border-t border-outline-variant/20">
+              <span class="font-label-md text-label-md text-on-surface-variant flex items-center mr-xs">Quick:</span>
+              <button onclick="setAutoExtra(50)"  class="font-label-md text-label-md px-4 py-2 rounded-full border border-outline-variant text-primary hover:bg-surface-container-low transition-all">+$50</button>
+              <button onclick="setAutoExtra(100)" class="font-label-md text-label-md px-4 py-2 rounded-full border border-outline-variant text-primary hover:bg-surface-container-low transition-all">+$100</button>
+              <button onclick="setAutoExtra(200)" class="font-label-md text-label-md px-4 py-2 rounded-full border border-outline-variant text-primary hover:bg-surface-container-low transition-all">+$200</button>
+              <button onclick="setAutoExtra(500)" class="font-label-md text-label-md px-4 py-2 rounded-full border border-outline-variant text-primary hover:bg-surface-container-low transition-all">+$500</button>
+            </div>
+          </div>
+
+          <!-- Target Date -->
+          <div id="a-mode-target-panel" class="hidden">
+            <h2 class="font-headline-sm text-headline-sm text-primary mb-xs">When do you want your car paid off?</h2>
+            <p class="font-body-md text-body-md text-on-surface-variant mb-lg">Pick a date. We'll solve for the monthly extra payment needed.</p>
+            <div class="grid grid-cols-2 gap-md mb-lg">
+              <div>
+                <label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Target Payoff Date</label>
+                <input id="a-target-date" type="month" value="2027-01"
+                  class="w-full px-3 py-2.5 rounded-lg border border-outline-variant bg-surface-container-low font-data-numeral text-[16px] focus:outline-none focus:ring-2 focus:ring-tertiary-container"
+                  onchange="calcAuto()">
+              </div>
+            </div>
+            <div id="a-target-result" class="bg-surface-container-low rounded-xl p-md border border-outline-variant/20">
+              <div class="grid grid-cols-2 gap-md">
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Required Extra Payment</p>
+                  <p id="a-req-extra" class="font-data-numeral text-[32px] leading-9 text-tertiary-container font-bold">—</p>
+                  <p class="font-body-md text-sm text-on-surface-variant mt-1">per month extra</p>
+                </div>
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Interest Avoided</p>
+                  <p id="a-req-avoided" class="font-data-numeral text-[32px] leading-9 text-secondary font-bold">—</p>
+                </div>
+              </div>
+              <div id="a-infeasible-msg" class="hidden mt-md bg-error-container rounded-lg p-sm">
+                <p class="font-body-md text-sm text-on-error-container"><strong>Target not reachable:</strong> This date has already passed or is too soon.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Auto Sensitivity Chart -->
+        <section class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 p-lg">
+          <h2 class="font-headline-sm text-headline-sm text-primary mb-xs">Payoff Acceleration Analysis</h2>
+          <p class="font-body-md text-body-md text-on-surface-variant mb-md">$50 increments. Auto loans accelerate faster — smaller amounts move the needle significantly.</p>
+          <div class="relative bg-surface-bright rounded-lg border border-outline-variant/20 overflow-hidden" style="height:240px;">
+            <canvas id="autoSensitivityCanvas" style="cursor:crosshair"></canvas>
+            <div id="auto-chart-tooltip" class="bar-tooltip hidden" style="top:8px;left:50%"></div>
+          </div>
+        </section>
+
+      </div><!-- /auto left -->
+
+      <!-- Auto Right Column -->
+      <div class="lg:col-span-5">
+        <div class="sticky top-24 flex flex-col gap-md">
+
+          <article class="bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(15,23,42,0.05)] border border-outline-variant/20 overflow-hidden">
+            <div class="h-2 w-full bg-secondary"></div>
+            <div class="p-lg">
+              <div class="flex items-center gap-sm mb-lg">
+                <span class="material-symbols-outlined text-secondary" style="font-variation-settings:'FILL' 1">directions_car</span>
+                <h3 class="font-headline-sm text-headline-sm text-primary">Auto Savings Summary</h3>
+              </div>
+              <div class="mb-lg">
+                <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Interest Avoided</p>
+                <span id="a-int-avoided" class="font-data-numeral text-[48px] leading-[56px] text-secondary font-bold tracking-tight">—</span>
+              </div>
+              <div class="grid grid-cols-2 gap-md mb-lg pt-md border-t border-outline-variant/20">
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Payoff Date</p>
+                  <p id="a-payoff-date" class="font-headline-md text-headline-md text-tertiary-container font-bold">—</p>
+                </div>
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Months Saved</p>
+                  <p id="a-months-saved" class="font-headline-md text-headline-md text-primary font-bold">—</p>
+                </div>
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Remaining Interest</p>
+                  <p id="a-rem-int" class="font-headline-md text-headline-md text-primary">—</p>
+                </div>
+                <div>
+                  <p class="font-label-md text-label-md text-on-surface-variant mb-xs">Total Monthly</p>
+                  <p id="a-total-pmt" class="font-headline-md text-headline-md text-primary">—</p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="bg-surface-container-low rounded-xl p-md border border-outline-variant/10">
+            <h4 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-md">Auto Loan Profile</h4>
+            <div class="space-y-sm">
+              <div class="flex justify-between"><span class="font-body-md text-body-md text-on-surface-variant">Base Monthly Payment</span><span id="a-base-pmt" class="font-data-numeral text-data-numeral text-primary">—</span></div>
+              <div class="flex justify-between"><span class="font-body-md text-body-md text-on-surface-variant">Payments Made</span><span id="a-pmts-made" class="font-data-numeral text-data-numeral text-primary">—</span></div>
+              <div class="flex justify-between"><span class="font-body-md text-body-md text-on-surface-variant">Baseline Payoff</span><span id="a-baseline-payoff" class="font-data-numeral text-data-numeral text-primary">—</span></div>
+              <div class="flex justify-between"><span class="font-body-md text-body-md text-on-surface-variant">Total Remaining Interest (min)</span><span id="a-rem-int-base" class="font-data-numeral text-data-numeral text-primary">—</span></div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /tab-auto -->
+
+</main>
+
+<!-- ══ Footer ════════════════════════════════════════════════════════════════ -->
+<footer class="bg-surface-container-low flex flex-col md:flex-row justify-between items-start md:items-center w-full px-gutter max-w-container-max mx-auto gap-8 py-10 border-t border-outline-variant mt-auto">
+  <p class="font-label-md text-label-md text-on-surface-variant">Financial projections are estimates only, not guaranteed. Consult a qualified financial advisor before making decisions.</p>
+  <div class="flex items-center gap-md">
+    <a href="https://github.com/ChrisGute/loan_tool" target="_blank" rel="noopener" title="GitHub" class="text-on-surface-variant hover:text-primary transition-colors flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+    </a>
+    <a href="https://www.linkedin.com/in/gute/" target="_blank" rel="noopener" title="LinkedIn" class="text-on-surface-variant hover:text-primary transition-colors flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    </a>
+  </div>
+</footer>
+
+<!-- ══ Scripts ═══════════════════════════════════════════════════════════════ -->
+<script>
+// ── Utility ────────────────────────────────────────────────────────────────
+const LM = window.LoanMath;
+
+function parseMoney(s) { return parseFloat((s||'').replace(/[$,]/g,'')) || 0; }
+function parseDate(s)  {
+  if (!s) return null;
+  const [y,m] = s.split('-');
+  return { year: parseInt(y), month: parseInt(m) - 1 };
+}
+function toInputMonth(d) {
+  return d.year + '-' + String(d.month + 1).padStart(2,'0');
+}
+function fmt$(v, dec) { return LM.formatDollars(v, dec); }
+function fmtDate(d)   { return LM.formatDate(d); }
+function fmtYrs(y)    {
+  const yrs = Math.floor(y);
+  const mos = Math.round((y - yrs) * 12);
+  if (yrs === 0) return mos + ' mo';
+  if (mos === 0) return yrs + ' yr' + (yrs !== 1 ? 's' : '');
+  return yrs + ' yr ' + mos + ' mo';
+}
+
+function sliderPct(el) {
+  const pct = (el.value - el.min) / (el.max - el.min) * 100;
+  el.style.setProperty('--pct', pct + '%');
+}
+
+// debounce to avoid firing on every keystroke
+let _debounceH = null, _debounceA = null;
+function debouncedCalc()     { clearTimeout(_debounceH); _debounceH = setTimeout(calcHome, 250); }
+function debouncedCalcAuto() { clearTimeout(_debounceA); _debounceA = setTimeout(calcAuto, 250); }
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('nav-home').className =
+    'font-body-md text-body-md font-medium pb-1 border-b-2 transition-colors ' +
+    (tab === 'home' ? 'text-primary font-bold border-primary' : 'text-on-surface-variant hover:text-primary border-transparent');
+  document.getElementById('nav-auto').className =
+    'font-body-md text-body-md font-medium pb-1 border-b-2 transition-colors ' +
+    (tab === 'auto' ? 'text-primary font-bold border-primary' : 'text-on-surface-variant hover:text-primary border-transparent');
+}
+
+// ── Mode switching (auto loan only — home loan shows both panels always) ───
+let autoMode = 'extra';
+
+function setMode() {} // no-op, kept for safety in case any old refs exist
+
+
+function setAutoMode(m) {
+  autoMode = m;
+  document.getElementById('a-mode-extra-panel').classList.toggle('hidden', m !== 'extra');
+  document.getElementById('a-mode-target-panel').classList.toggle('hidden', m !== 'target');
+  document.getElementById('a-mode-extra').classList.toggle('active', m === 'extra');
+  document.getElementById('a-mode-target').classList.toggle('active', m !== 'extra');
+  document.getElementById('a-mode-extra').classList.toggle('text-on-surface-variant', m !== 'extra');
+  document.getElementById('a-mode-target').classList.toggle('text-on-surface-variant', m !== 'target');
+  calcAuto();
+}
+
+// ── Slider helpers ─────────────────────────────────────────────────────────
+function onHomeSlider(el) {
+  sliderPct(el);
+  document.getElementById('h-extra-display').textContent = '$' + parseInt(el.value).toLocaleString();
+  calcHome();
+}
+function setHomeExtra(v) {
+  const el = document.getElementById('h-extra-slider');
+  el.value = v; sliderPct(el);
+  document.getElementById('h-extra-display').textContent = '$' + v.toLocaleString();
+  calcHome();
+}
+function onAutoSlider(el) {
+  sliderPct(el);
+  document.getElementById('a-extra-display').textContent = '$' + parseInt(el.value).toLocaleString();
+  calcAuto();
+}
+function setAutoExtra(v) {
+  const el = document.getElementById('a-extra-slider');
+  el.value = Math.min(v, el.max); sliderPct(el);
+  document.getElementById('a-extra-display').textContent = '$' + v.toLocaleString();
+  calcAuto();
+}
+
+// ── Target date quick presets ──────────────────────────────────────────────
+function setTargetYears(yrs) {
+  const currDate = parseDate(document.getElementById('h-currdate').value) || { year: 2026, month: 4 };
+  const target   = LM.addMonthsToDate(currDate, yrs * 12);
+  document.getElementById('h-target-date').value = toInputMonth(target);
+  calcHome();
+}
+
+// ── Chart drawing with hover tooltips ─────────────────────────────────────
+
+// Stores { canvasId → [ {x, y, w, h, data} ] } for hit-testing
+const _hitRegions = {};
+
+function drawBarChart(canvasId, series, selectedExtra, sweetExtra) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const W = canvas.offsetWidth || 600;
+  const H = canvas.offsetHeight || 260;
+  canvas.width  = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.clearRect(0, 0, W, H);
+
+  // Filter to max ~40 visible bars, but always keep selected + sweet
+  let display = series;
+  if (series.length > 40) {
+    const every = Math.ceil(series.length / 40);
+    display = series.filter((d, i) =>
+      i % every === 0 ||
+      d.extraPayment === selectedExtra ||
+      d.extraPayment === sweetExtra
+    );
+  }
+
+  const PAD = { top: 32, right: 16, bottom: 48, left: 48 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top  - PAD.bottom;
+
+  const maxYrs = Math.max(...display.map(d => d.yearsRemaining));
+  const minYrs = Math.min(...display.map(d => d.yearsRemaining));
+  const yRange = maxYrs - minYrs || 1;
+
+  const barW = chartW / display.length;
+  const gap  = Math.max(1, barW * 0.18);
+
+  // ── Grid lines ──────────────────────────────────────────────────────────
+  ctx.strokeStyle = '#e0e3e5';
+  ctx.lineWidth   = 1;
+  ctx.setLineDash([4, 4]);
+  const gridSteps = 4;
+  for (let g = 0; g <= gridSteps; g++) {
+    const yPx  = PAD.top + chartH * (g / gridSteps);
+    ctx.beginPath();
+    ctx.moveTo(PAD.left, yPx);
+    ctx.lineTo(PAD.left + chartW, yPx);
+    ctx.stroke();
+    const yVal = maxYrs - (yRange * g / gridSteps);
+    ctx.fillStyle = '#76777d';
+    ctx.font = '10px Manrope, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(yVal.toFixed(1) + 'y', PAD.left - 6, yPx + 4);
+  }
+  ctx.setLineDash([]);
+
+  // Y axis label
+  ctx.save();
+  ctx.translate(13, PAD.top + chartH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#76777d';
+  ctx.font = '10px Manrope, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Years Remaining', 0, 0);
+  ctx.restore();
+
+  // ── Bars + hit regions ─────────────────────────────────────────────────
+  const hits = [];
+
+  display.forEach((d, idx) => {
+    const bx  = PAD.left + idx * barW + gap / 2;
+    const bw  = Math.max(2, barW - gap);
+    const bh  = Math.max(3, chartH * (d.yearsRemaining - minYrs) / yRange);
+    const by  = PAD.top + chartH - bh;
+
+    // ── Color ──────────────────────────────────────────────────────────
+    const isSelected = d.extraPayment === selectedExtra;
+    const isSweet    = d.extraPayment === sweetExtra;
+    let baseColor, hoverColor;
+    if (isSelected)        { baseColor = '#001a42'; hoverColor = '#1a3a6a'; }
+    else if (d.extraPayment <= sweetExtra) { baseColor = '#006c49'; hoverColor = '#00a06a'; }
+    else                   { baseColor = '#c8cace'; hoverColor = '#a0a4a8'; }
+
+    ctx.fillStyle = baseColor;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, [4, 4, 0, 0]);
+    ctx.fill();
+
+    // ── Selected bar highlight glow ────────────────────────────────────
+    if (isSelected) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,26,66,.4)';
+      ctx.shadowBlur  = 10;
+      ctx.fillStyle   = baseColor;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, bw, bh, [4, 4, 0, 0]);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ── Sweet spot top marker ──────────────────────────────────────────
+    if (isSweet) {
+      ctx.fillStyle = '#b85c00';
+      ctx.font = 'bold 9px Manrope, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('★', bx + bw / 2, PAD.top - 12);
+    }
+
+    // ── Data label on selected bar and every 5th step ──────────────────
+    const step = (series[1]?.extraPayment ?? 100) - (series[0]?.extraPayment ?? 0);
+    const showLabel = isSelected || isSweet || (d.extraPayment % (step * 5) === 0 && step > 0);
+    if (showLabel) {
+      ctx.fillStyle = isSelected ? '#001a42' : '#45464d';
+      ctx.font      = isSelected ? 'bold 10px Manrope, sans-serif' : '9px Manrope, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(d.yearsRemaining.toFixed(1) + 'y', bx + bw / 2, by - 5);
+    }
+
+    // ── X-axis label ───────────────────────────────────────────────────
+    const showX = isSelected || isSweet || (d.extraPayment % (step * 5) === 0 && step > 0);
+    if (showX) {
+      ctx.fillStyle = isSelected ? '#001a42' : '#76777d';
+      ctx.font      = isSelected ? 'bold 10px Manrope, sans-serif' : '9px Manrope, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('$' + d.extraPayment.toLocaleString(), bx + bw / 2, H - PAD.bottom + 14);
+    }
+
+    // ── Store hit region (CSS pixel coords, not scaled) ────────────────
+    hits.push({ x: bx, y: by, w: bw, h: bh, data: d, isSweet, isSelected });
+  });
+
+  // X axis label
+  ctx.fillStyle = '#76777d';
+  ctx.font = '10px Manrope, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Additional Monthly Payment', PAD.left + chartW / 2, H - 5);
+
+  // Sweet spot legend label
+  if (sweetExtra !== undefined) {
+    const sIdx = display.findIndex(d => d.extraPayment >= sweetExtra);
+    if (sIdx >= 0) {
+      const sx = PAD.left + sIdx * barW + barW / 2;
+      ctx.fillStyle = '#b85c00';
+      ctx.font = 'bold 9px Manrope, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Sweet Spot', sx, PAD.top - 2);
+    }
+  }
+
+  _hitRegions[canvasId] = hits;
+}
+
+// ── Wire up mouse events for a chart canvas ──────────────────────────────
+function wireChartEvents(canvasId, tooltipId, onClickExtra) {
+  const canvas  = document.getElementById(canvasId);
+  const tooltip = document.getElementById(tooltipId);
+  if (!canvas || !tooltip) return;
+
+  let lastHit = null;
+
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx   = e.clientX - rect.left;
+    const my   = e.clientY - rect.top;
+    const hits = _hitRegions[canvasId] || [];
+
+    // Find the bar under cursor (use x center proximity for thin bars)
+    let found = null;
+    let closestDx = Infinity;
+    for (const h of hits) {
+      const cx = h.x + h.w / 2;
+      const dx = Math.abs(mx - cx);
+      if (dx < h.w / 2 + 4 && my >= h.y - 8 && my <= h.y + h.h + 4 && dx < closestDx) {
+        found = h;
+        closestDx = dx;
+      }
+    }
+
+    if (found) {
+      canvas.style.cursor = 'pointer';
+      if (found === lastHit) return; // no redraw needed
+      lastHit = found;
+
+      const d = found.data;
+      const zone = found.isSelected ? '' : (found.isSweet ? 'sweet' : (d.extraPayment <= (found.data._sweetExtra || 999999) ? 'efficient' : 'diminishing'));
+
+      tooltip.classList.remove('hidden');
+      tooltip.innerHTML = `
+        <div class="bar-tooltip-title">+$${d.extraPayment.toLocaleString()}/mo extra</div>
+        <div class="bar-tooltip-row"><span>Payoff date</span><span class="bar-tooltip-val">${LM.formatDate(d.payoffDate)}</span></div>
+        <div class="bar-tooltip-row"><span>Years left</span><span class="bar-tooltip-val">${d.yearsRemaining.toFixed(2)} yrs</span></div>
+        <div class="bar-tooltip-row"><span>Interest avoided</span><span class="bar-tooltip-val">${LM.formatDollars(d.interestAvoided)}</span></div>
+        <div class="bar-tooltip-row"><span>Years saved</span><span class="bar-tooltip-val">${d.yearsSaved.toFixed(2)} yrs</span></div>
+        <div class="bar-tooltip-row"><span>Rem. interest</span><span class="bar-tooltip-val">${LM.formatDollars(d.remainingInterest)}</span></div>
+        ${found.isSweet ? '<div class="bar-tooltip-badge">★ Sweet Spot</div>' : ''}
+        ${found.isSelected ? '<div class="bar-tooltip-badge green">◆ Selected</div>' : ''}
+        <div style="font-size:10px;color:#adc6ff;margin-top:6px">Click to select this amount</div>
+      `;
+
+      // Position tooltip: above the bar, centered, clamped to canvas bounds
+      const canvasRect = canvas.getBoundingClientRect();
+      const barCenterX = found.x + found.w / 2;
+      const ttW = 180;
+      let left = barCenterX;
+      // Clamp so tooltip doesn't overflow canvas
+      left = Math.max(ttW / 2 + 4, Math.min(canvasRect.width - ttW / 2 - 4, left));
+      tooltip.style.left = left + 'px';
+      tooltip.style.top  = Math.max(4, found.y - tooltip.offsetHeight - 10) + 'px';
+    } else {
+      canvas.style.cursor = 'crosshair';
+      lastHit = null;
+      tooltip.classList.add('hidden');
+    }
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    lastHit = null;
+    tooltip.classList.add('hidden');
+    canvas.style.cursor = 'crosshair';
+  });
+
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx   = e.clientX - rect.left;
+    const my   = e.clientY - rect.top;
+    const hits = _hitRegions[canvasId] || [];
+
+    let found = null, closestDx = Infinity;
+    for (const h of hits) {
+      const cx = h.x + h.w / 2;
+      const dx = Math.abs(mx - cx);
+      if (dx < h.w / 2 + 4 && my >= h.y - 8 && my <= h.y + h.h + 4 && dx < closestDx) {
+        found = h; closestDx = dx;
+      }
+    }
+    if (found && onClickExtra) onClickExtra(found.data.extraPayment);
+  });
+}
+
+// ── Home loan calculation ──────────────────────────────────────────────────
+function calcHome() {
+  const principal  = parseMoney(document.getElementById('h-principal').value);
+  const rate       = parseFloat(document.getElementById('h-rate').value) || 5.5;
+  const term       = parseInt(document.getElementById('h-term').value)   || 360;
+  const startDate  = parseDate(document.getElementById('h-start').value);
+  const balance    = parseMoney(document.getElementById('h-balance').value);
+  const currDate   = parseDate(document.getElementById('h-currdate').value);
+  const lump       = parseMoney(document.getElementById('h-lump').value);
+  const lumpDate   = parseDate(document.getElementById('h-lump-date').value);
+  const benchRate  = parseFloat(document.getElementById('h-bench').value) || 5.0;
+  const graphMax   = parseInt(document.getElementById('h-graph-max').value) || 5000;
+  const extra      = parseInt(document.getElementById('h-extra-slider').value) || 0;
+
+  if (!principal || !balance || !startDate || !currDate) return;
+  if (balance <= 0 || principal <= 0) return;
+
+  const snap = LM.fullSnapshot({
+    originalPrincipal: principal,
+    annualRatePct:     rate,
+    termMonths:        term,
+    startDate,
+    currentBalance:    balance,
+    currentDate:       currDate,
+    extraPayment:      extra,
+    maxSensitivity:    graphMax,
+    sensitivityStep:   100,
+    benchmarkRatePct:  benchRate,
+    lumpSum:           lump > 0 ? lump : 0,
+    lumpSumDate:       lumpDate,
+  });
+
+  // ── Summary cards ──────────────────────────────────────────────────────
+  const withE = snap.withExtra;
+  document.getElementById('h-int-avoided').textContent    = fmt$(withE.interestAvoided);
+  document.getElementById('h-int-avoided-sub').textContent = 'vs. paying minimums only';
+  document.getElementById('h-payoff-date').textContent    = fmtDate(withE.payoffDate);
+  document.getElementById('h-time-saved').textContent     = fmtYrs(withE.yearsSaved);
+  document.getElementById('h-rem-int').textContent        = fmt$(withE.remainingInterest);
+  document.getElementById('h-total-pmt').textContent      = fmt$(snap.baseMonthlyPayment + extra);
+
+  // ── Schedule status ────────────────────────────────────────────────────
+  const drift = snap.drift;
+  const ahead  = drift.monthsAhead >= 0;
+  document.getElementById('h-months-ahead').textContent  = (ahead ? '+' : '') + Math.round(drift.monthsAhead) + ' months';
+  document.getElementById('h-months-ahead').className    = 'font-data-numeral text-data-numeral font-bold ' + (ahead ? 'text-secondary' : 'text-error');
+  document.getElementById('h-dollar-drift').textContent  = fmt$(Math.abs(drift.dollarDrift));
+  document.getElementById('h-dollar-drift').className    = 'font-data-numeral text-data-numeral font-bold ' + (ahead ? 'text-secondary' : 'text-error');
+
+  const origPayoff = LM.addMonthsToDate(startDate, term);
+  document.getElementById('h-drift-narrative').textContent =
+    'Your balance is ' + fmt$(Math.abs(drift.dollarDrift)) + ' ' +
+    (ahead ? 'below' : 'above') + ' what your original schedule predicted, putting you ' +
+    Math.abs(Math.round(drift.monthsAhead)) + ' months ' + (ahead ? 'ahead of' : 'behind') +
+    ' your original ' + fmtDate(origPayoff) + ' payoff date.';
+
+  // ── Loan profile card ──────────────────────────────────────────────────
+  document.getElementById('h-sched-bal').textContent      = fmt$(drift.scheduledBalance);
+  document.getElementById('h-actual-bal').textContent     = fmt$(balance);
+  document.getElementById('h-base-pmt').textContent       = fmt$(snap.baseMonthlyPayment);
+  document.getElementById('h-int-paid').textContent       = fmt$(snap.interestPaidToDate);
+  document.getElementById('h-baseline-payoff').textContent = fmtDate(snap.baseline.payoffDate);
+
+  // ── Sweet spot ─────────────────────────────────────────────────────────
+  if (snap.sweetSpot) {
+    const ss = snap.sweetSpot.sweetSpot;
+    document.getElementById('h-sweet-val').textContent  = '$' + ss.extraPayment.toLocaleString() + '/mo extra';
+    document.getElementById('h-sweet-desc').textContent =
+      'At $' + ss.extraPayment.toLocaleString() + '/mo, each $100 saves ' + ss.mbr.toFixed(1) +
+      ' months. Past this point returns fall below the average (' + snap.sweetSpot.avgFirstHalfMbr.toFixed(1) +
+      ' mo/$100) — your capital may work harder elsewhere.';
+  }
+
+  // ── Benchmark ─────────────────────────────────────────────────────────
+  document.getElementById('h-bench-label').textContent = benchRate.toFixed(1);
+  const bench = snap.benchmark;
+  let benchHtml;
+  if (bench.prepayWins) {
+    benchHtml = '<strong>Prepaying likely wins.</strong> Your loan rate (' + rate.toFixed(2) + '%) exceeds the ' +
+      benchRate.toFixed(1) + '% benchmark. Guaranteed debt reduction beats a risk-free savings account at this rate. ' +
+      'If you can earn consistently more than ' + rate.toFixed(2) + '% elsewhere, that changes the math.';
+  } else {
+    benchHtml = '<strong>Investing may win.</strong> Your loan rate (' + rate.toFixed(2) + '%) is below the ' +
+      benchRate.toFixed(1) + '% benchmark. Investing $' + extra.toLocaleString() +
+      '/mo could grow to <strong>' + fmt$(bench.investmentFV) + '</strong> vs ' +
+      fmt$(bench.interestAvoided) + ' avoided by prepaying (pre-tax, not adjusted for risk).';
+  }
+  document.getElementById('h-bench-result').innerHTML = benchHtml;
+
+  // ── Target date — always calculated ───────────────────────────────────
+  {
+    const targetDate = parseDate(document.getElementById('h-target-date').value);
+    if (targetDate) {
+      const r = LM.solveForTargetDate(balance, rate, snap.baseMonthlyPayment, currDate, targetDate);
+      const infeas = document.getElementById('h-infeasible-msg');
+      infeas.classList.toggle('hidden', r.feasible);
+      document.getElementById('h-req-extra').textContent  = r.feasible ? fmt$(r.requiredExtra) : '—';
+      document.getElementById('h-req-total').textContent  = r.feasible ? fmt$(r.totalPayment) : '—';
+      document.getElementById('h-req-avoided').textContent = r.feasible ? fmt$(r.interestAvoided) : '—';
+      document.getElementById('h-req-months').textContent  = r.feasible ? r.targetMonths + ' mo' : '—';
+      // Time saved field
+      const baseN2 = LM.remainingMonths(balance, rate, snap.baseMonthlyPayment, 0);
+      const timeSavedEl = document.getElementById('h-req-timesaved');
+      if (timeSavedEl) timeSavedEl.textContent = r.feasible ? fmtYrs((baseN2 - r.nRemaining) / 12) : '—';
+      // Update summary cards with target-mode numbers
+      if (r.feasible) {
+        document.getElementById('h-int-avoided').textContent = fmt$(r.interestAvoided);
+        document.getElementById('h-payoff-date').textContent  = fmtDate(targetDate);
+        const baseN = LM.remainingMonths(balance, rate, snap.baseMonthlyPayment, 0);
+        document.getElementById('h-time-saved').textContent   = fmtYrs((baseN - r.nRemaining) / 12);
+        document.getElementById('h-rem-int').textContent      = fmt$(r.remainingInterest);
+        document.getElementById('h-total-pmt').textContent    = fmt$(r.totalPayment);
+      }
+    }
+  }
+
+  // ── Lump sum ───────────────────────────────────────────────────────────
+  if (snap.lumpSum) {
+    const ls = snap.lumpSum;
+    document.getElementById('h-lump-bal').textContent    = fmt$(ls.balanceAfterLump);
+    document.getElementById('h-lump-avoided').textContent = fmt$(ls.interestAvoided);
+    document.getElementById('h-lump-payoff').textContent  = fmtDate(ls.payoffDate);
+  }
+
+  // ── Chart ──────────────────────────────────────────────────────────────
+  if (snap.sensitivitySeries.length > 1) {
+    const sweetExtra = snap.sweetSpot ? snap.sweetSpot.sweetSpot.extraPayment : 0;
+    drawBarChart('sensitivityCanvas', snap.sensitivitySeries, extra, sweetExtra);
+  }
+
+  // Update slider range label
+  document.getElementById('h-slider-max-label').textContent = '$' + graphMax.toLocaleString();
+  const sl = document.getElementById('h-extra-slider');
+  sl.max = graphMax;
+  if (parseInt(sl.value) > graphMax) sl.value = graphMax;
+  sliderPct(sl);
+}
+
+// ── Auto loan calculation ──────────────────────────────────────────────────
+function calcAuto() {
+  const principal = parseMoney(document.getElementById('a-principal').value);
+  const rate      = parseFloat(document.getElementById('a-rate').value) || 7.9;
+  const term      = parseInt(document.getElementById('a-term').value)   || 72;
+  const startDate = parseDate(document.getElementById('a-start').value);
+  const currDate  = parseDate(document.getElementById('a-currdate').value);
+  const extra     = parseInt(document.getElementById('a-extra-slider').value) || 0;
+
+  // Auto-compute balance from schedule if field is empty
+  let balance = parseMoney(document.getElementById('a-balance').value);
+  if (!balance && principal && startDate && currDate) {
+    const k = LM.monthDiff(startDate, currDate);
+    balance = LM.scheduledBalance(principal, rate, term, k);
+    document.getElementById('a-balance').placeholder =
+      '$' + Math.round(balance).toLocaleString() + ' (estimated)';
+  }
+
+  if (!principal || !balance || !startDate || !currDate) return;
+  if (balance <= 0) return;
+
+  const snap = LM.fullSnapshot({
+    originalPrincipal: principal,
+    annualRatePct:     rate,
+    termMonths:        term,
+    startDate,
+    currentBalance:    balance,
+    currentDate:       currDate,
+    extraPayment:      autoMode === 'extra' ? extra : 0,
+    maxSensitivity:    1000,
+    sensitivityStep:   50,
+    benchmarkRatePct:  5.0,
+  });
+
+  const withE = snap.withExtra;
+  document.getElementById('a-int-avoided').textContent    = fmt$(withE.interestAvoided);
+  document.getElementById('a-payoff-date').textContent    = fmtDate(withE.payoffDate);
+  document.getElementById('a-months-saved').textContent   = Math.round(withE.monthsSaved) + ' months';
+  document.getElementById('a-rem-int').textContent        = fmt$(withE.remainingInterest);
+  document.getElementById('a-total-pmt').textContent      = fmt$(snap.baseMonthlyPayment + (autoMode === 'extra' ? extra : 0));
+  document.getElementById('a-base-pmt').textContent       = fmt$(snap.baseMonthlyPayment);
+  document.getElementById('a-pmts-made').textContent      = snap.paymentsMade + ' payments';
+  document.getElementById('a-baseline-payoff').textContent = fmtDate(snap.baseline.payoffDate);
+  document.getElementById('a-rem-int-base').textContent   = fmt$(snap.baseline.remainingInterest);
+
+  // Target mode
+  if (autoMode === 'target') {
+    const td = parseDate(document.getElementById('a-target-date').value);
+    if (td) {
+      const r = LM.solveForTargetDate(balance, rate, snap.baseMonthlyPayment, currDate, td);
+      document.getElementById('a-infeasible-msg').classList.toggle('hidden', r.feasible);
+      document.getElementById('a-req-extra').textContent   = r.feasible ? fmt$(r.requiredExtra) : '—';
+      document.getElementById('a-req-avoided').textContent = r.feasible ? fmt$(r.interestAvoided) : '—';
+      if (r.feasible) {
+        document.getElementById('a-int-avoided').textContent  = fmt$(r.interestAvoided);
+        document.getElementById('a-payoff-date').textContent  = fmtDate(td);
+        document.getElementById('a-total-pmt').textContent    = fmt$(r.totalPayment);
+      }
+    }
+  }
+
+  // Chart
+  if (autoMode === 'extra' && snap.sensitivitySeries.length > 1) {
+    const sweetExtra = snap.sweetSpot ? snap.sweetSpot.sweetSpot.extraPayment : 0;
+    drawBarChart('autoSensitivityCanvas', snap.sensitivitySeries, extra, sweetExtra);
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  sliderPct(document.getElementById('h-extra-slider'));
+  sliderPct(document.getElementById('a-extra-slider'));
+  calcHome();
+  calcAuto();
+
+  // Wire hover + click events for both charts
+  wireChartEvents('sensitivityCanvas', 'chart-tooltip', (extra) => {
+    setHomeExtra(extra);
+  });
+  wireChartEvents('autoSensitivityCanvas', 'auto-chart-tooltip', (extra) => {
+    setAutoExtra(extra);
+  });
+});
+
+window.addEventListener('resize', () => {
+  calcHome();
+  calcAuto();
+});
+</script>
+</body>
+</html>
