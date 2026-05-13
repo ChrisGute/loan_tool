@@ -815,6 +815,93 @@ let _debounceH = null, _debounceA = null;
 function debouncedCalc()     { clearTimeout(_debounceH); _debounceH = setTimeout(calcHome, 250); }
 function debouncedCalcAuto() { clearTimeout(_debounceA); _debounceA = setTimeout(calcAuto, 250); }
 
+// ── URL state — encode all inputs into ?params so links are shareable ───────
+
+// Field ID → URL param key mappings
+const HOME_PARAMS = [
+  ['h-principal', 'hp'],
+  ['h-rate',      'hr'],
+  ['h-term',      'ht'],
+  ['h-start',     'hs'],
+  ['h-balance',   'hb'],
+  ['h-currdate',  'hd'],
+  ['h-extra-slider', 'he'],
+  ['h-graph-max', 'hgm'],
+  ['h-target-date','htd'],
+  ['h-bench',     'hbn'],
+  ['h-lump',      'hl'],
+  ['h-lump-date', 'hld'],
+];
+const AUTO_PARAMS = [
+  ['a-principal', 'ap'],
+  ['a-rate',      'ar'],
+  ['a-term',      'at'],
+  ['a-start',     'as'],
+  ['a-balance',   'ab'],
+  ['a-currdate',  'ad'],
+  ['a-extra-slider','ae'],
+  ['a-target-date','atd'],
+];
+
+let _urlWriteBlocked = false; // suppress writes during initial load
+
+function writeUrlState() {
+  if (_urlWriteBlocked) return;
+  const p = new URLSearchParams();
+  // Active tab
+  const activeTab = document.querySelector('.tab-panel.active');
+  if (activeTab) p.set('tab', activeTab.id.replace('tab-', ''));
+  // Auto mode
+  p.set('am', autoMode);
+  // Home fields
+  HOME_PARAMS.forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el && el.value !== '') p.set(key, el.value);
+  });
+  // Auto fields
+  AUTO_PARAMS.forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el && el.value !== '') p.set(key, el.value);
+  });
+  history.replaceState(null, '', '?' + p.toString());
+}
+
+function readUrlState() {
+  const p = new URLSearchParams(location.search);
+  if (!p.has('hp') && !p.has('ap') && !p.has('tab')) return; // nothing to restore
+
+  _urlWriteBlocked = true;
+
+  // Home fields
+  HOME_PARAMS.forEach(([id, key]) => {
+    if (p.has(key)) {
+      const el = document.getElementById(id);
+      if (el) el.value = p.get(key);
+    }
+  });
+  // Auto fields
+  AUTO_PARAMS.forEach(([id, key]) => {
+    if (p.has(key)) {
+      const el = document.getElementById(id);
+      if (el) el.value = p.get(key);
+    }
+  });
+  // Sliders need --pct CSS var updated
+  sliderPct(document.getElementById('h-extra-slider'));
+  sliderPct(document.getElementById('a-extra-slider'));
+  // Slider display labels
+  const he = document.getElementById('h-extra-slider');
+  document.getElementById('h-extra-display').textContent = '$' + parseInt(he.value).toLocaleString();
+  const ae = document.getElementById('a-extra-slider');
+  document.getElementById('a-extra-display').textContent = '$' + parseInt(ae.value).toLocaleString();
+  // Tab
+  if (p.has('tab')) switchTab(p.get('tab'));
+  // Auto mode
+  if (p.has('am')) setAutoMode(p.get('am'));
+
+  _urlWriteBlocked = false;
+}
+
 // ── Tab switching ──────────────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -825,6 +912,7 @@ function switchTab(tab) {
   document.getElementById('nav-auto').className =
     'font-body-md text-body-md font-medium pb-1 border-b-2 transition-colors ' +
     (tab === 'auto' ? 'text-primary font-bold border-primary' : 'text-on-surface-variant hover:text-primary border-transparent');
+  writeUrlState();
 }
 
 // ── Mode switching (auto loan only — home loan shows both panels always) ───
@@ -1269,6 +1357,7 @@ function calcHome() {
   sl.max = graphMax;
   if (parseInt(sl.value) > graphMax) sl.value = graphMax;
   sliderPct(sl);
+  writeUrlState();
 }
 
 // ── Auto loan calculation ──────────────────────────────────────────────────
@@ -1337,12 +1426,14 @@ function calcAuto() {
     const sweetExtra = snap.sweetSpot ? snap.sweetSpot.sweetSpot.extraPayment : 0;
     drawBarChart('autoSensitivityCanvas', snap.sensitivitySeries, extra, sweetExtra);
   }
+  writeUrlState();
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
   sliderPct(document.getElementById('h-extra-slider'));
   sliderPct(document.getElementById('a-extra-slider'));
+  readUrlState();   // restore fields from URL params before first calc
   calcHome();
   calcAuto();
 

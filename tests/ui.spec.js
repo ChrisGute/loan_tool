@@ -537,3 +537,105 @@ test.describe('Tablet layout (768 × 1024)', () => {
     expect(hasPixels).toBe(true);
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// 11. URL state — shareable links
+// ════════════════════════════════════════════════════════════════════════════
+test.describe('URL state (shareable links)', () => {
+  test('URL params are written after load', async ({ browser }) => {
+    const page = await openPage(browser);
+    // After calcHome runs, the URL should be updated — wait for it
+    await page.waitForFunction(() => location.search.includes('hp='), { timeout: 5000 });
+    const url = page.url();
+    expect(url).toContain('hp=');   // home principal
+    expect(url).toContain('hr=');   // home rate
+    expect(url).toContain('hb=');   // home balance
+  });
+
+  test('changing a field updates the URL', async ({ browser }) => {
+    const page = await openPage(browser);
+    await page.waitForFunction(() => location.search.includes('hp='), { timeout: 5000 });
+
+    await page.locator('#h-balance').fill('150,000');
+    await page.locator('#h-balance').dispatchEvent('input');
+    await page.waitForFunction(() => location.search.includes('hb=150'), { timeout: 5000 });
+
+    expect(page.url()).toContain('hb=150%2C000');
+  });
+
+  test('slider value is encoded in URL', async ({ browser }) => {
+    const page = await openPage(browser);
+    await page.waitForFunction(() => location.search.includes('hp='), { timeout: 5000 });
+
+    // Use a step-valid value (step=100, so 800 is valid)
+    await page.locator('#h-extra-slider').fill('800');
+    await page.locator('#h-extra-slider').dispatchEvent('input');
+    await page.waitForFunction(() => location.search.includes('he=800'), { timeout: 5000 });
+
+    expect(page.url()).toContain('he=800');
+  });
+
+  test('URL restores home loan fields on reload', async ({ browser }) => {
+    const page = await openPage(browser);
+
+    // Set a distinctive balance
+    await page.locator('#h-balance').fill('123456');
+    await page.locator('#h-balance').dispatchEvent('input');
+    await page.waitForTimeout(400);
+
+    const sharedUrl = page.url();
+    expect(sharedUrl).toContain('hb=');
+
+    // Open a new page with that URL
+    const ctx2  = await browser.newContext({ viewport: DESKTOP });
+    const page2 = await ctx2.newPage();
+    await page2.goto(sharedUrl, { waitUntil: 'domcontentloaded' });
+    await page2.waitForFunction(() => typeof window.LoanMath !== 'undefined', { timeout: 15_000 });
+    await page2.waitForTimeout(300);
+
+    const restoredBalance = await page2.locator('#h-balance').inputValue();
+    expect(restoredBalance).toBe('123456');
+  });
+
+  test('URL restores auto tab and mode', async ({ browser }) => {
+    const page = await openPage(browser);
+
+    // Switch to auto tab, target mode
+    await page.locator('#nav-auto').click();
+    await page.locator('#a-mode-target').click();
+    await page.waitForTimeout(200);
+
+    const sharedUrl = page.url();
+    expect(sharedUrl).toContain('tab=auto');
+    expect(sharedUrl).toContain('am=target');
+
+    // Open fresh page with that URL
+    const ctx2  = await browser.newContext({ viewport: DESKTOP });
+    const page2 = await ctx2.newPage();
+    await page2.goto(sharedUrl, { waitUntil: 'domcontentloaded' });
+    await page2.waitForFunction(() => typeof window.LoanMath !== 'undefined', { timeout: 15_000 });
+    await page2.waitForTimeout(300);
+
+    await expect(page2.locator('#tab-auto')).toHaveClass(/active/);
+    await expect(page2.locator('#a-mode-target-panel')).toBeVisible();
+  });
+
+  test('direct URL with custom rate produces correct calculations', async ({ browser }) => {
+    // Build a URL with a 7% rate directly
+    const ctx  = await browser.newContext({ viewport: DESKTOP });
+    const page = await ctx.newPage();
+    const url  = FILE_URL + '?tab=home&hp=400%2C000&hr=7.00&ht=360&hb=380%2C000&hd=2026-01&hs=2024-01&he=0&hbn=5.0';
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof window.LoanMath !== 'undefined', { timeout: 15_000 });
+    await page.waitForTimeout(300);
+
+    // Rate field should be 7.00
+    const rate = await page.locator('#h-rate').inputValue();
+    expect(rate).toBe('7.00');
+
+    // Calculations should have run — interest avoided should be a dollar value
+    const avoided = await text(page, '#h-int-avoided');
+    expect(avoided).toMatch(/^\$/);
+  });
+});
+
